@@ -173,11 +173,6 @@ begin
     end;
 
     // Display the final message box
-    MsgBox('A modification was made to ~/.chia/mainnet/config/config.yaml to register this software with Chia. Please restart Chia to begin using this software.', mbInformation, MB_OK);
-    if MsgBox('Installation completed successfully. Do you want to restart Windows now?', mbConfirmation, MB_YESNO) = IDYES then
-    begin
-      // Restart Windows
-      RestartComputer;
-    end;
+    MsgBox('Please restart your computer to begin using this software.', mbInformation, MB_OK);
   end;
 end;
