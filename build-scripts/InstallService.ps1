@@ -2,6 +2,8 @@ param (
     [string]$PathToExe
 )
 
+Write-Output "Installing service...Please wait."
+
 $dlStorageRoot = "$env:USERPROFILE\.dlaas"
 [Environment]::SetEnvironmentVariable("DL_STORAGE_ROOT", $dlStorageRoot, "Machine")
 
