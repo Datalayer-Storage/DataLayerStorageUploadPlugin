@@ -26,7 +26,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "runasservice"; Description: "Run {#MyAppName} as a Windows service"; GroupDescription: "Additional Tasks"; Flags: checked
+Name: "runasservice"; Description: "Run {#MyAppName} as a Windows service"; GroupDescription: "Additional Tasks"; Flags: unchecked
 
 [Files]
 Source: "{#MyAppSourcePath}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -34,15 +34,13 @@ Source: "{#MyAppSourcePath}\*"; DestDir: "{app}"; Flags: ignoreversion recursesu
 [Icons]
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
-[Run]
-Filename: "{app}\{#MyAppExeName}"; Parameters: "install"; Description: "{cm:LaunchProgram, {#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent; Tasks: runasservice
-
 [Code]
 var
   ClientAccessKeyPage: TInputQueryWizardPage;
   InstallDirPage: TInputDirWizardPage;
   ExePath: string;
   UpdateConfigExe: string;
+  RunAsService: Boolean;
 
 procedure InitializeWizard;
 begin
@@ -51,6 +49,7 @@ begin
     'Please enter the Client Access Key, then click Next. You must create your access keys at https://datalayer.storage and place them here to use this software.');
   ClientAccessKeyPage.Add('Access Key:', False);
   ClientAccessKeyPage.Add('Secret Key:', False);
+  RunAsService := True; // Set the initial value based on the default state of the checkbox
 end;
 
 procedure SaveConfig(AccessKey: string; SecretKey: string);
@@ -71,13 +70,24 @@ begin
   SaveStringToFile(ConfigFile, ConfigContents, False);
 end;
 
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    if RunAsService then
+      RegisterService; // Call the RegisterService function if the checkbox is checked
+  end;
+end;
+
 function RegisterService(): Boolean;
 var
   ResultCode: Integer;
   ExecutablePath: string;
 begin
   ExecutablePath := ExpandConstant('"{app}\{#MyAppExeName}"');
-  
+
   if not Exec(ExecutablePath, 'install', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
   begin
     MsgBox('An error occurred while executing the service installation.', mbError, MB_OK);
@@ -88,11 +98,22 @@ end;
 function DeregisterService(): Boolean;
 var
   ResultCode: Integer;
+  ExecutablePath: string;
 begin
-  if not Exec(ExpandConstant('{app}\{#MyAppExeName}'), 'uninstall', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
+  ExecutablePath := ExpandConstant('"{app}\{#MyAppExeName}"');
+
+  if not Exec(ExecutablePath, 'uninstall', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
   begin
-    MsgBox('An error occurred while executing the service uninstallation.', mbError, MB_OK);
+    MsgBox('An error occurred while executing the service installation.', mbError, MB_OK);
     Exit;
+  end;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = wpSelectTasks then
+  begin
+    WizardForm.TasksList.Checked[1] := True; // Index 1 corresponds to the "runasservice" task
   end;
 end;
 
