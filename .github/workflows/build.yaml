@@ -144,7 +144,7 @@ jobs:
 
       - name: Upload to S3 with checksum
         run: |
-          winInstallerFile=dl-upload-plugin-windows-x64/win_64/DatalayerStorageInstaller.exe
+          winInstallerFile=DatalayerStorageInstaller.exe
           winInstallerChecksum=$(md5sum "$winInstallerFile" | cut -d ' ' -f 1)
           aws s3 cp "$winInstallerFile" s3://dlaas/releases/DatalayerStorageInstaller-${{ steps.tag-name.outputs.TAGNAME }}.exe --metadata md5="$winInstallerChecksum"
           aws s3 cp "$winInstallerFile" s3://dlaas/releases/DatalayerStorageInstaller-latest.exe --metadata md5="$winInstallerChecksum"
