@@ -142,10 +142,6 @@ jobs:
         id: tag-name
         run: echo "TAGNAME=$(echo $GITHUB_REF | cut -d / -f 3)" >> $GITHUB_OUTPUT
 
-      - name: Create zips
-        run: |
-          zip -r DataLayerStorageUploadService-${{ steps.tag-name.outputs.TAGNAME }}.zip DataLayerStorageUploadService/DataLayerStorageUploadServiceInstaller.exe
-      
       - name: Upload to S3 with checksum
         run: |
           winInstallerFile=dl-upload-plugin-windows-x64/win_64/DatalayerStorageInstaller.exe
