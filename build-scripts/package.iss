@@ -77,7 +77,7 @@ begin
   if CurStep = ssPostInstall then
   begin
     if RunAsService then
-      RegisterService; // Call the RegisterService function if the checkbox is checked
+      RegisterService(); // Call the RegisterService function if the checkbox is checked
   end;
 end;
 
