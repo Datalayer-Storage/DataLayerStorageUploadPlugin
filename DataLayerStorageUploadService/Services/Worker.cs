@@ -4,10 +4,18 @@ using Microsoft.AspNetCore.Hosting;
 using Serilog;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 
 public class Worker
 {
     private IWebHost _webHost;
+
+    static Action ScheduledAction()
+    {
+        Logger.LogInformation("STARTING SCHEDULED ACTION: InitiateAddMissingFilesOnLocal");
+        Utils.InitiateAddMissingFilesOnLocal();
+        return null;
+    }
 
     public void Start()
     {
@@ -23,7 +31,7 @@ public class Worker
                 Logger.LogInformation(config.ToString());
             }
 
-            Utils.InitiateAddMissingFilesOnLocal();
+            Scheduler.ScheduleFunctionExecution(DayOfWeek.Monday, new TimeSpan(9, 0, 0), ScheduledAction());
 
             var port = config["PORT"] ?? "41410";
             var url = $"http://localhost:{port}";

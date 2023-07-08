@@ -125,13 +125,12 @@ namespace DataLayerStorageUploadService
                 try
                 {
                     var deserializer = new Deserializer();
-                    Logger.LogInformation(File.ReadAllText(configFilePath));
                     var yml = deserializer.Deserialize<Dictionary<string, object>>(File.ReadAllText(configFilePath));
                     return yml;
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Config file not found at {configFilePath}", e);
+                    Logger.LogError($"Config file not found at {configFilePath}");
                     throw;
                 }
             }
@@ -139,7 +138,7 @@ namespace DataLayerStorageUploadService
             {
                 string persistenceFolderPath = GetDLaaSRootEnv();
                 string configFilePath = Path.Combine(persistenceFolderPath, "config.yaml");
-                Console.WriteLine($"Config file not found at {configFilePath}", e);
+                Logger.LogError($"Config file not found at {configFilePath}");
                 throw;
             }
         }
