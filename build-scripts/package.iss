@@ -6,7 +6,6 @@
 #define MyAppPublisher "Taylor Digital Services"
 #define MyAppURL "https://datalayer.storage"
 #define MyAppExeName "DataLayerStorageUploadService.exe"
-#define MyAppSourcePath "C:\Users\14434\source\repos\ChiaNetwork\datalayer-storage-upload-service\dist"
 
 [Setup]
 AppId={{Some Unique Identifier, like GUID}}
