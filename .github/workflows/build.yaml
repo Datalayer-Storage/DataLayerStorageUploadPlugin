@@ -142,9 +142,14 @@ jobs:
         id: tag-name
         run: echo "TAGNAME=$(echo $GITHUB_REF | cut -d / -f 3)" >> $GITHUB_OUTPUT
 
+      - name: dir
+        run: |
+          ls -la
+          ls -la DataLayerStorageUploadService
+
       - name: Upload to S3 with checksum
         run: |
-          winInstallerFile=DatalayerStorageInstaller.exe
+          winInstallerFile=DataLayerStorageUploadService/DatalayerStorageInstaller.exe
           winInstallerChecksum=$(md5sum "$winInstallerFile" | cut -d ' ' -f 1)
           aws s3 cp "$winInstallerFile" s3://dlaas/releases/DatalayerStorageInstaller-${{ steps.tag-name.outputs.TAGNAME }}.exe --metadata md5="$winInstallerChecksum"
           aws s3 cp "$winInstallerFile" s3://dlaas/releases/DatalayerStorageInstaller-latest.exe --metadata md5="$winInstallerChecksum"
