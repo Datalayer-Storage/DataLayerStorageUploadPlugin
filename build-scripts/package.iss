@@ -70,17 +70,6 @@ begin
   SaveStringToFile(ConfigFile, ConfigContents, False);
 end;
 
-procedure CurStepChanged(CurStep: TSetupStep);
-var
-  ResultCode: Integer;
-begin
-  if CurStep = ssPostInstall then
-  begin
-    if RunAsService then
-      RegisterService(); // Call the RegisterService function if the checkbox is checked
-  end;
-end;
-
 function RegisterService(): Boolean;
 var
   ResultCode: Integer;
@@ -106,6 +95,17 @@ begin
   begin
     MsgBox('An error occurred while executing the service installation.', mbError, MB_OK);
     Exit;
+  end;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    if RunAsService then
+      RegisterService(); // Call the RegisterService function if the checkbox is checked
   end;
 end;
 
