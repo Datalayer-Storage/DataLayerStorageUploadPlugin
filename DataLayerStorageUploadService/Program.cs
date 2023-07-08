@@ -5,6 +5,9 @@ public class Program
 {
     static void Main()
     {
+        // initialize the config file if it doesnt exist
+        DataLayerStorageUploadService.Utils.GetConfig();
+
         var exitCode = HostFactory.Run(x =>
         {
             x.Service<Worker>(s =>

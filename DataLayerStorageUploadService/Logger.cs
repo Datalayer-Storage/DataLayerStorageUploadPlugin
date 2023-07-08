@@ -5,8 +5,8 @@ using System.IO;
 public static class Logger
 {
     private static readonly string HomeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-    private static readonly string PersistenceFolderPath = Path.Combine(HomeDir, ".dlaas/plugin");
-    private static readonly string LogDir = Path.Combine(@"C:\tmp", "logs");
+    private static readonly string PersistenceFolderPath = DataLayerStorageUploadService.Utils.GetDLaaSRootEnv();
+    private static readonly string LogDir = Path.Combine(PersistenceFolderPath, "logs");
 
     static Logger()
     {
