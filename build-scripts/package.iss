@@ -4,6 +4,7 @@
 #define MyAppURL "https://datalayer.storage"
 #define MyAppExeName "DataLayerStorageUploadService.exe"
 
+
 [Setup]
 AppId={{Some Unique Identifier, like GUID}}
 AppName={#MyAppName}
@@ -38,7 +39,7 @@ Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: 
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Parameters: "install"; Description: "{cm:LaunchProgram, {#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent; Tasks: runasservice
-Filename: "{app}\{#MyAppExeName}"; Parameters: "uninstall"; Description: "{cm:LaunchProgram, {#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postuninstall skipifsilent; Tasks: runasservice
+Filename: "{app}\{#MyAppExeName}"; Parameters: "uninstall"; Description: "{cm:LaunchProgram, {#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait; Tasks: runasservice
 
 [Code]
 var
