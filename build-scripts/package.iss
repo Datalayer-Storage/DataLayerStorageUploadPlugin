@@ -26,20 +26,16 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "runasservice"; Description: "Run {#MyAppName} as a Windows service"; GroupDescription: "Additional Tasks"; Flags: unchecked
+Name: "runasservice"; Description: "Run {#MyAppName} as a Windows service"; GroupDescription: "Additional Tasks"; Flags: checked
 
 [Files]
 Source: "{#MyAppSourcePath}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-
-[Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: "{app}\{#MyAppExeName}"; Tasks: runasservice
 
 [Icons]
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Parameters: "install"; Description: "{cm:LaunchProgram, {#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent; Tasks: runasservice
-Filename: "{app}\{#MyAppExeName}"; Parameters: "uninstall"; Description: "{cm:LaunchProgram, {#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait; Tasks: runasservice
 
 [Code]
 var
@@ -78,8 +74,11 @@ end;
 function RegisterService(): Boolean;
 var
   ResultCode: Integer;
+  ExecutablePath: string;
 begin
-  if not Exec(ExpandConstant('{app}\{#MyAppExeName}'), 'install', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
+  ExecutablePath := ExpandConstant('"{app}\{#MyAppExeName}"');
+  
+  if not Exec(ExecutablePath, 'install', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
   begin
     MsgBox('An error occurred while executing the service installation.', mbError, MB_OK);
     Exit;
