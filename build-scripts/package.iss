@@ -1,8 +1,12 @@
+
+
+
 #define MyAppName "DataLayer Storage Upload Plugin"
 #define MyAppVersion "1.0"
 #define MyAppPublisher "Taylor Digital Services"
 #define MyAppURL "https://datalayer.storage"
 #define MyAppExeName "DataLayerStorageUploadService.exe"
+#define MyAppSourcePath "C:\Users\14434\source\repos\ChiaNetwork\datalayer-storage-upload-service\build-scripts"
 
 
 [Setup]
@@ -49,7 +53,6 @@ begin
     'Please enter the Client Access Key, then click Next. You must create your access keys at https://datalayer.storage and place them here to use this software.');
   ClientAccessKeyPage.Add('Access Key:', False);
   ClientAccessKeyPage.Add('Secret Key:', False);
-  RunAsService := True; // Set the initial value based on the default state of the checkbox
 end;
 
 procedure SaveConfig(AccessKey: string; SecretKey: string);
@@ -73,29 +76,45 @@ end;
 function RegisterService(): Boolean;
 var
   ResultCode: Integer;
-  ExecutablePath: string;
+  PowerShellPath: string;
+  ScriptPath: string;
+  ExePath: string;
+  ServiceName: string;
 begin
-  ExecutablePath := ExpandConstant('"{app}\{#MyAppExeName}"');
+  PowerShellPath := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+  ScriptPath := ExpandConstant('{app}\InstallService.ps1');  // replace with actual path if different
+  ExePath := ExpandConstant('{app}\DataLayerStorageUploadService.exe');
+  ServiceName := 'DataLayerStorage';
 
-  if not Exec(ExecutablePath, 'install', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
+  if not Exec(PowerShellPath, '-ExecutionPolicy Bypass -File "' + ScriptPath + '" -PathToExe "' + ExePath + '" -ServiceName "' + ServiceName + '"', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
   begin
-    MsgBox('An error occurred while executing the service installation.', mbError, MB_OK);
+    MsgBox('An error occurred while executing the service installation. Error code: ' + IntToStr(ResultCode), mbError, MB_OK);
+    Result := False;
     Exit;
   end;
+
+  Result := True;
 end;
 
 function DeregisterService(): Boolean;
 var
   ResultCode: Integer;
-  ExecutablePath: string;
+  PowerShellPath: string;
+  ScriptPath: string;
+  ExePath: string;
 begin
-  ExecutablePath := ExpandConstant('"{app}\{#MyAppExeName}"');
+  PowerShellPath := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+  ScriptPath := ExpandConstant('{app}\UnInstallService.ps1');  // replace with actual path if different
+  ExePath := ExpandConstant('{app}\DataLayerStorageUploadService.exe');
 
-  if not Exec(ExecutablePath, 'uninstall', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
+  if not Exec(PowerShellPath, '-ExecutionPolicy Bypass -File "' + ScriptPath + '" -PathToExe "' + ExePath + '"', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
   begin
-    MsgBox('An error occurred while executing the service installation.', mbError, MB_OK);
+    MsgBox('An error occurred while executing the service installation. Error code: ' + IntToStr(ResultCode), mbError, MB_OK);
+    Result := False;
     Exit;
   end;
+
+  Result := True;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -104,7 +123,7 @@ var
 begin
   if CurStep = ssPostInstall then
   begin
-    if RunAsService then
+    if WizardIsTaskSelected('runasservice') then
       RegisterService(); // Call the RegisterService function if the checkbox is checked
   end;
 end;

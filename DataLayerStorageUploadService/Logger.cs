@@ -6,7 +6,7 @@ public static class Logger
 {
     private static readonly string HomeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     private static readonly string PersistenceFolderPath = Path.Combine(HomeDir, ".dlaas/plugin");
-    private static readonly string LogDir = Path.Combine(PersistenceFolderPath, "logs");
+    private static readonly string LogDir = Path.Combine(@"C:\tmp", "logs");
 
     static Logger()
     {
