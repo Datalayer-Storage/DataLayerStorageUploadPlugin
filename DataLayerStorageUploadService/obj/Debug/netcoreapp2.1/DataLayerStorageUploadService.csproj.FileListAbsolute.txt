@@ -1,0 +1,7 @@
+C:\Users\14434\source\repos\ChiaNetwork\datalayer-storage-upload-service\DataLayerStorageUploadService\obj\Debug\netcoreapp2.1\DataLayerStorageUploadService.csproj.AssemblyReference.cache
+C:\Users\14434\source\repos\ChiaNetwork\datalayer-storage-upload-service\DataLayerStorageUploadService\obj\Debug\netcoreapp2.1\DataLayerStorageUploadService.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\14434\source\repos\ChiaNetwork\datalayer-storage-upload-service\DataLayerStorageUploadService\obj\Debug\netcoreapp2.1\DataLayerStorageUploadService.AssemblyInfoInputs.cache
+C:\Users\14434\source\repos\ChiaNetwork\datalayer-storage-upload-service\DataLayerStorageUploadService\obj\Debug\netcoreapp2.1\DataLayerStorageUploadService.AssemblyInfo.cs
+C:\Users\14434\source\repos\ChiaNetwork\datalayer-storage-upload-service\DataLayerStorageUploadService\obj\Debug\netcoreapp2.1\DataLayerStorageUploadService.csproj.CoreCompileInputs.cache
+C:\Users\14434\source\repos\ChiaNetwork\datalayer-storage-upload-service\DataLayerStorageUploadService\obj\Debug\netcoreapp2.1\DataLayerStorageUploadService.RazorAssemblyInfo.cache
+C:\Users\14434\source\repos\ChiaNetwork\datalayer-storage-upload-service\DataLayerStorageUploadService\obj\Debug\netcoreapp2.1\DataLayerStorageUploadService.RazorAssemblyInfo.cs

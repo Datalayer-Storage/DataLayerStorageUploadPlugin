@@ -1,0 +1,154 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '5.0.x'  # Replace with the desired .NET version
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build project
+        run: dotnet publish --configuration Release --output ./dist --runtime win-x64 --self-contained true
+
+      - name: Setup Certificate
+        run: |
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > /d/Certificate_pkcs12.p12
+          cat /d/Certificate_pkcs12.p12
+        shell: bash
+
+      - name: Set variables
+        id: variables
+        run: |
+          echo "::set-output name=version::${GITHUB_REF#refs/tags/v}"
+          echo "::set-output name=KEYPAIR_NAME::Key_454819080"
+          echo "SM_HOST=${{ secrets.SM_HOST }}" >> "$GITHUB_ENV"
+          echo "SM_API_KEY=${{ secrets.SM_API_KEY }}" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_FILE=D:\\Certificate_pkcs12.p12" >> "$GITHUB_ENV"
+          echo "SM_CLIENT_CERT_PASSWORD=${{ secrets.SM_CLIENT_CERT_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "C:\Program Files (x86)\Windows Kits\10\App Certification Kit" >> $GITHUB_PATH
+          echo "C:\Program Files (x86)\Microsoft SDKs\Windows\v10.0A\bin\NETFX 4.8 Tools" >> $GITHUB_PATH
+          echo "C:\Program Files\DigiCert\DigiCert One Signing Manager Tools" >> $GITHUB_PATH
+          echo "C:\Program Files\DigiCert\DigiCert Keylocker Tools" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Setting up the client tools
+        run: |
+          curl -X GET  https://one.digicert.com/signingmanager/api-ui/v1/releases/Keylockertools-windows-x64.msi/download?account_id=e94ff86e-6519-4598-a066-6b6b252245f0 -H "x-api-key:%SM_API_KEY%" -o smtools-windows-x64.msi
+          msiexec /i smtools-windows-x64.msi /qn
+        shell: cmd
+
+      - name: Setup SSM KSP on windows latest
+        run: |
+          curl -X GET  https://stage.one.digicert.com/signingmanager/api-ui/v1/releases/smtools-windows-x64.msi/download -H "x-api-key:%SM_API_KEY%" -o smtools-windows-x64.msi
+          msiexec /i smtools-windows-x64.msi /quiet /qn
+          smksp_registrar.exe list
+          smctl.exe keypair ls
+          C:\Windows\System32\certutil.exe -csp "DigiCert Signing Manager KSP" -key -user
+          smksp_cert_sync.exe
+        shell: cmd
+
+      - name: Signing using Signtool
+        run: |
+          signtool.exe sign /sha1 ${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }} /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 ${{ github.workspace }}\dist\DataLayerStorageUploadService.exe
+
+      - name: Signtool verify
+        run: |
+          signtool verify /v /pa ${{ github.workspace }}\dist\DataLayerStorageUploadService.exe
+        shell: cmd
+
+      - name: Download Inno Setup
+        run: |
+          Invoke-WebRequest -Uri "http://files.jrsoftware.org/is/6/innosetup-6.1.2.exe" -OutFile "innosetup.exe"
+      
+      - name: Install Inno Setup
+        run: |
+          Start-Process -FilePath .\innosetup.exe -ArgumentList "/SP-", "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART" -Wait
+          
+      - name: Add Inno Setup to PATH
+        run: |
+          echo "C:\Program Files (x86)\Inno Setup 6" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
+          
+      - name: Package EXE
+        run: |
+          iscc /dMyAppSourcePath="${{ github.workspace }}\dist" ${{ github.workspace }}\build-scripts\package.iss
+        shell: cmd
+
+      - name: Signing WinInstaller using Signtool
+        run: |
+          signtool.exe sign /sha1 ${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }} /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 ${{ github.workspace }}\dist\DatalayerStorageInstaller.exe
+
+      - name: Signtool verify WinInstaller
+        run: |
+          signtool verify /v /pa ${{ github.workspace }}\dist\DatalayerStorageInstaller.exe
+        shell: cmd
+
+      - name: Signing UpdateConfig Tool using Signtool
+        run: |
+          signtool.exe sign /sha1 ${{ secrets.SM_CODE_SIGNING_CERT_SHA1_HASH }} /tr http://timestamp.digicert.com /td SHA256 /fd SHA256 ${{ github.workspace }}\build-scripts\update_config.exe
+
+      - name: Signtool verify UpdateConfig Tool
+        run: |
+          signtool verify /v /pa ${{ github.workspace }}\build-scripts\update_config.exe
+        shell: cmd
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: DataLayerStorageUploadService
+          path: ${{ github.workspace }}/dist
+  
+  release:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs:
+      - build
+
+    steps:
+      - uses: chrislennon/action-aws-cli@v1.1
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+      
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: DataLayerStorageUploadService
+          path: DataLayerStorageUploadService
+
+      - name: Get tag name
+        id: tag-name
+        run: echo "TAGNAME=$(echo $GITHUB_REF | cut -d / -f 3)" >> $GITHUB_OUTPUT
+
+      - name: Create zips
+        run: |
+          zip -r DataLayerStorageUploadService-${{ steps.tag-name.outputs.TAGNAME }}.zip DataLayerStorageUploadService/DataLayerStorageUploadServiceInstaller.exe
+      
+      - name: Upload to S3 with checksum
+        run: |
+          winInstallerFile=dl-upload-plugin-windows-x64/win_64/DatalayerStorageInstaller.exe
+          winInstallerChecksum=$(md5sum "$winInstallerFile" | cut -d ' ' -f 1)
+          aws s3 cp "$winInstallerFile" s3://dlaas/releases/DatalayerStorageInstaller-${{ steps.tag-name.outputs.TAGNAME }}.exe --metadata md5="$winInstallerChecksum"
+          aws s3 cp "$winInstallerFile" s3://dlaas/releases/DatalayerStorageInstaller-latest.exe --metadata md5="$winInstallerChecksum"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: 'us-east-1'
