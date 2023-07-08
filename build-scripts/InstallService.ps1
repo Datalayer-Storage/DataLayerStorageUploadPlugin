@@ -1,6 +1,5 @@
 param (
-    [string]$PathToExe,
-    [string]$ServiceName
+    [string]$PathToExe
 )
 
 $dlStorageRoot = "$env:USERPROFILE\.dlaas"

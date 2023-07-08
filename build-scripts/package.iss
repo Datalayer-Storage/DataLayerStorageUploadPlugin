@@ -6,6 +6,7 @@
 #define MyAppPublisher "Taylor Digital Services"
 #define MyAppURL "https://datalayer.storage"
 #define MyAppExeName "DataLayerStorageUploadService.exe"
+#define MyAppSourcePath "C:\Users\14434\source\repos\ChiaNetwork\datalayer-storage-upload-service\dist"
 
 [Setup]
 AppId={{Some Unique Identifier, like GUID}}
@@ -32,6 +33,9 @@ Name: "runasservice"; Description: "Run {#MyAppName} as a Windows service"; Grou
 
 [Files]
 Source: "{#MyAppSourcePath}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "update_config.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "InstallService.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "UnInstallService.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
@@ -84,7 +88,7 @@ begin
   ExePath := ExpandConstant('{app}\DataLayerStorageUploadService.exe');
   ServiceName := 'DataLayerStorage';
 
-  if not Exec(PowerShellPath, '-ExecutionPolicy Bypass -File "' + ScriptPath + '" -PathToExe "' + ExePath + '" -ServiceName "' + ServiceName + '"', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
+  if not Exec(PowerShellPath, '-ExecutionPolicy Bypass -File "' + ScriptPath + '" -PathToExe "' + ExePath + '"', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
   begin
     MsgBox('An error occurred while executing the service installation. Error code: ' + IntToStr(ResultCode), mbError, MB_OK);
     Result := False;
@@ -171,5 +175,10 @@ begin
 
     // Display the final message box
     MsgBox('A modification was made to ~/.chia/mainnet/config/config.yaml to register this software with Chia. Please restart Chia to begin using this software.', mbInformation, MB_OK);
+    if MsgBox('Installation completed successfully. Do you want to restart Windows now?', mbConfirmation, MB_YESNO) = IDYES then
+    begin
+      // Restart Windows
+      RestartComputer;
+    end;
   end;
 end;
