@@ -1,3 +1,6 @@
+
+
+
 #define MyAppName "DataLayer Storage Upload Plugin"
 #define MyAppVersion "1.0"
 #define MyAppPublisher "Taylor Digital Services"
@@ -29,16 +32,12 @@ Name: "runasservice"; Description: "Run {#MyAppName} as a Windows service"; Grou
 
 [Files]
 Source: "{#MyAppSourcePath}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-
-[Registry]
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: "{app}\{#MyAppExeName}"; Tasks: runasservice
+Source: "update_config.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "InstallService.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "UnInstallService.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-
-[Run]
-Filename: "{app}\{#MyAppExeName}"; Parameters: "install"; Description: "{cm:LaunchProgram, {#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent; Tasks: runasservice
-Filename: "{app}\{#MyAppExeName}"; Parameters: "uninstall"; Description: "{cm:LaunchProgram, {#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postuninstall skipifsilent; Tasks: runasservice
 
 [Code]
 var
@@ -46,6 +45,7 @@ var
   InstallDirPage: TInputDirWizardPage;
   ExePath: string;
   UpdateConfigExe: string;
+  RunAsService: Boolean;
 
 procedure InitializeWizard;
 begin
@@ -77,22 +77,63 @@ end;
 function RegisterService(): Boolean;
 var
   ResultCode: Integer;
+  PowerShellPath: string;
+  ScriptPath: string;
+  ExePath: string;
+  ServiceName: string;
 begin
-  if not Exec(ExpandConstant('{app}\{#MyAppExeName}'), 'install', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
+  PowerShellPath := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+  ScriptPath := ExpandConstant('{app}\InstallService.ps1');  // replace with actual path if different
+  ExePath := ExpandConstant('{app}\DataLayerStorageUploadService.exe');
+  ServiceName := 'DataLayerStorage';
+
+  if not Exec(PowerShellPath, '-ExecutionPolicy Bypass -File "' + ScriptPath + '" -PathToExe "' + ExePath + '"', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
   begin
-    MsgBox('An error occurred while executing the service installation.', mbError, MB_OK);
+    MsgBox('An error occurred while executing the service installation. Error code: ' + IntToStr(ResultCode), mbError, MB_OK);
+    Result := False;
     Exit;
   end;
+
+  Result := True;
 end;
 
 function DeregisterService(): Boolean;
 var
   ResultCode: Integer;
+  PowerShellPath: string;
+  ScriptPath: string;
+  ExePath: string;
 begin
-  if not Exec(ExpandConstant('{app}\{#MyAppExeName}'), 'uninstall', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
+  PowerShellPath := ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe');
+  ScriptPath := ExpandConstant('{app}\UnInstallService.ps1');  // replace with actual path if different
+  ExePath := ExpandConstant('{app}\DataLayerStorageUploadService.exe');
+
+  if not Exec(PowerShellPath, '-ExecutionPolicy Bypass -File "' + ScriptPath + '" -PathToExe "' + ExePath + '"', '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
   begin
-    MsgBox('An error occurred while executing the service uninstallation.', mbError, MB_OK);
+    MsgBox('An error occurred while executing the service installation. Error code: ' + IntToStr(ResultCode), mbError, MB_OK);
+    Result := False;
     Exit;
+  end;
+
+  Result := True;
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  ResultCode: Integer;
+begin
+  if CurStep = ssPostInstall then
+  begin
+    if WizardIsTaskSelected('runasservice') then
+      RegisterService(); // Call the RegisterService function if the checkbox is checked
+  end;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = wpSelectTasks then
+  begin
+    WizardForm.TasksList.Checked[1] := True; // Index 1 corresponds to the "runasservice" task
   end;
 end;
 
@@ -132,6 +173,6 @@ begin
     end;
 
     // Display the final message box
-    MsgBox('A modification was made to ~/.chia/mainnet/config/config.yaml to register this software with Chia. Please restart Chia to begin using this software.', mbInformation, MB_OK);
+    MsgBox('Please restart your computer to begin using this software.', mbInformation, MB_OK);
   end;
 end;

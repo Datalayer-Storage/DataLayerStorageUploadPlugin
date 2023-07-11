@@ -8,14 +8,90 @@ on:
     branches:
       - '**'
 
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  build-config-updater:
     runs-on: ubuntu-latest
+    
+    steps:
+      - name: Clean workspace
+        uses: Chia-Network/actions/clean-workspace@main
+
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.13'
+
+      - name: npm install
+        run: |
+          node --version
+          npm install
+        working-directory: ./config_update
+
+      - name: npm cache clear --force
+        run: npm cache clear --force
+        working-directory: ./config_update
+
+      - name: npm cache rm
+        run: npm cache rm --force
+        working-directory: ./config_update
+
+      - name: npm cache verify
+        run: npm cache verify
+        working-directory: ./config_update
+
+      - name: install global packages
+        run: npm i -g pkg
+        working-directory: ./config_update
+      
+      - name: build exe
+        run: npm run create-win-x64-dist
+        working-directory: ./config_update
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: update_config
+          path: ${{ github.workspace }}/config_update/dist/win_64
+    
+  build:
+    runs-on: windows-2019
+    needs:
+      - build-config-updater
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      - name: Download Config artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: update_config
+          path: update_config
+
+      - name: List files
+        run: |
+          ls -la
+        shell: bash
+        working-directory: update_config
+
+      - name: Copy Config to build-scripts
+        run: |
+          cp update_config/update_config.exe ./build-scripts/update_config.exe
+        shell: bash
+
+      - name: List files
+        run: |
+          ls -la
+        shell: bash
+        working-directory: ./build-scripts
+        
       - name: Setup .NET
         uses: actions/setup-dotnet@v1
         with:
@@ -88,7 +164,7 @@ jobs:
         run: |
           echo "C:\Program Files (x86)\Inno Setup 6" | Out-File -Append -FilePath $env:GITHUB_PATH -Encoding utf8
           
-      - name: Package EXE
+      - name: Package the EXE
         run: |
           iscc /dMyAppSourcePath="${{ github.workspace }}\dist" ${{ github.workspace }}\build-scripts\package.iss
         shell: cmd
@@ -138,13 +214,9 @@ jobs:
         id: tag-name
         run: echo "TAGNAME=$(echo $GITHUB_REF | cut -d / -f 3)" >> $GITHUB_OUTPUT
 
-      - name: Create zips
-        run: |
-          zip -r DataLayerStorageUploadService-${{ steps.tag-name.outputs.TAGNAME }}.zip DataLayerStorageUploadService/DataLayerStorageUploadServiceInstaller.exe
-      
       - name: Upload to S3 with checksum
         run: |
-          winInstallerFile=dl-upload-plugin-windows-x64/win_64/DatalayerStorageInstaller.exe
+          winInstallerFile=DataLayerStorageUploadService/DatalayerStorageInstaller.exe
           winInstallerChecksum=$(md5sum "$winInstallerFile" | cut -d ' ' -f 1)
           aws s3 cp "$winInstallerFile" s3://dlaas/releases/DatalayerStorageInstaller-${{ steps.tag-name.outputs.TAGNAME }}.exe --metadata md5="$winInstallerChecksum"
           aws s3 cp "$winInstallerFile" s3://dlaas/releases/DatalayerStorageInstaller-latest.exe --metadata md5="$winInstallerChecksum"

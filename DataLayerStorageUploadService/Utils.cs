@@ -16,15 +16,20 @@ namespace DataLayerStorageUploadService
         private static string? _chiaRoot = null;
         private static readonly HttpClient client = new HttpClient();
         private static readonly string homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        private static readonly string persistenceFolderPath = Path.Combine(homeDir, ".dlaas");
-        private static readonly string configFilePath = Path.Combine(persistenceFolderPath, "config.yaml");
 
+        public static string GetChiaRootEnv()
+        {
+            string chiaRoot = Environment.GetEnvironmentVariable("CHIA_ROOT", EnvironmentVariableTarget.Machine);
+            return chiaRoot;
+        }
 
         public static string GetChiaRoot()
         {
             if (_chiaRoot == null)
             {
-                var chiaRootEnv = Environment.GetEnvironmentVariable("CHIA_ROOT");
+                var chiaRootEnv = GetChiaRootEnv();
+
+                Logger.LogInformation("CHIA ROOT: " + chiaRootEnv);
 
                 if (!string.IsNullOrEmpty(chiaRootEnv))
                 {
@@ -36,6 +41,8 @@ namespace DataLayerStorageUploadService
                     _chiaRoot = Path.GetFullPath(Path.Combine(homeDir, ".chia", "mainnet"));
                 }
             }
+
+            Logger.LogInformation("Using Chia Root at: " + _chiaRoot);
 
             return _chiaRoot;
         }
@@ -70,10 +77,32 @@ namespace DataLayerStorageUploadService
             return matchedFiles;
         }
 
+        public static string GetDLaaSRootEnv()
+        {
+            string root = "";
+            string dlaasRoot = Environment.GetEnvironmentVariable("DL_STORAGE_ROOT", EnvironmentVariableTarget.Machine);
+
+            if (!string.IsNullOrEmpty(dlaasRoot))
+            {
+                root = Path.GetFullPath(dlaasRoot);
+            }
+            else
+            {
+                var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                root = Path.Combine(homeDir, ".dlaas");
+            }
+            return root;
+        }
+
         public static Dictionary<string, object> GetConfig()
         {
             try
             {
+                string persistenceFolderPath = GetDLaaSRootEnv();
+                string configFilePath = Path.Combine(persistenceFolderPath, "config.yaml");
+
+                Logger.LogInformation("Getting Service Config from: " + configFilePath);
+
                 if (!File.Exists(configFilePath))
                 {
                     try
@@ -101,13 +130,15 @@ namespace DataLayerStorageUploadService
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine($"Config file not found at {configFilePath}", e);
+                    Logger.LogError($"Config file not found at {configFilePath}");
                     throw;
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Config file not found at {configFilePath}", e);
+                string persistenceFolderPath = GetDLaaSRootEnv();
+                string configFilePath = Path.Combine(persistenceFolderPath, "config.yaml");
+                Logger.LogError($"Config file not found at {configFilePath}");
                 throw;
             }
         }
